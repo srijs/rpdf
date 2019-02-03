@@ -1,0 +1,12 @@
+[package]
+name = "rpdf_glyph_names"
+version = "0.1.0"
+authors = ["Sam Rijs <srijs@airpost.net>"]
+edition = "2018"
+workspace = "../.."
+
+[dependencies]
+phf = "0.7.24"
+
+[build-dependencies]
+phf_codegen = "0.7.24"

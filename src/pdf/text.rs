@@ -72,7 +72,7 @@ impl<'a> TextIter<'a> {
                 + self.text_state.word_spacing)
                 * self.text_state.horizontal_scaling;
             fragment.glyphs.push(TextGlyph {
-                code: char::from(*c),
+                code: font.decode_char(*c),
                 origin: self.text_matrix.transform_point(&origin),
                 advance: tx,
             });

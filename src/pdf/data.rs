@@ -64,6 +64,7 @@ impl<'a> TryFromObject<'a> for i64 {
     }
 }
 
+#[derive(Debug)]
 pub struct Name(pub Vec<u8>);
 
 impl<'a> TryFromObject<'a> for Name {
@@ -99,6 +100,15 @@ impl<'a> TryFromObject<'a> for &'a lopdf::Dictionary {
             lopdf::Object::Dictionary(dict) => Ok(dict),
             _ => bail!("unexpected object type"),
         }
+    }
+}
+
+impl<'a> TryFromObject<'a> for &'a lopdf::Object {
+    fn try_from_object_direct(_doc: &'a lopdf::Document, obj: &'a lopdf::Object) -> Fallible<Self>
+    where
+        Self: Sized,
+    {
+        Ok(obj)
     }
 }
 

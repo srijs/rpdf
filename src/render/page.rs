@@ -6,7 +6,7 @@ use crate::pdf;
 
 pub struct PageRenderer<'a> {
     page: &'a pdf::Page,
-    font_keys: HashMap<&'a [u8], FontKey>,
+    font_keys: HashMap<&'a [u8], Option<FontKey>>,
     font_instance_keys: HashMap<(&'a [u8], u32), FontInstanceKey>,
 }
 
@@ -19,17 +19,26 @@ impl<'a> PageRenderer<'a> {
         }
     }
 
-    fn load_font(&mut self, api: &RenderApi, txn: &mut Transaction, name: &'a [u8]) -> FontKey {
+    fn load_font(
+        &mut self,
+        api: &RenderApi,
+        txn: &mut Transaction,
+        name: &'a [u8],
+    ) -> Option<FontKey> {
         let page = self.page;
         *self.font_keys.entry(name).or_insert_with(|| {
             let key = api.generate_font_key();
-            let font = page.font(name).unwrap();
-            match font.data().unwrap() {
-                pdf::FontData::Type1(bytes) => {
-                    txn.add_raw_font(key, (**bytes).clone(), 0);
+            if let Some(font) = page.font(name) {
+                match font.data() {
+                    Some(pdf::FontData::Type1(bytes)) => {
+                        txn.add_raw_font(key, (**bytes).clone(), 0);
+                        Some(key)
+                    }
+                    None => None,
                 }
+            } else {
+                None
             }
-            key
         })
     }
 
@@ -46,7 +55,7 @@ impl<'a> PageRenderer<'a> {
             .entry((name, size))
             .or_insert_with(|| {
                 let key = api.generate_font_instance_key();
-                let font_key = font_keys[name];
+                let font_key = font_keys[name].unwrap();
                 txn.add_font_instance(
                     key,
                     font_key,
@@ -74,7 +83,14 @@ impl<'a> PageRenderer<'a> {
                     euclid::TypedTransform2D::from_untyped(&text_fragment.transform);
                 transform.m32 = self.page.height() as f32 - transform.m32;
 
-                let font_key = self.load_font(api, txn, &text_fragment.font_name);
+                let font_key = match self.load_font(api, txn, &text_fragment.font_name) {
+                    Some(key) => key,
+                    // skip text fragments that don't have font data
+                    None => {
+                        continue;
+                    }
+                };
+
                 let font_instance_key = self.load_font_instance(
                     api,
                     txn,

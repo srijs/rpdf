@@ -53,12 +53,16 @@ impl Font {
                     dict.get(b"FontDescriptor").unwrap(),
                 )?;
 
-                let file =
-                    <&lopdf::Stream>::try_from_object(doc, descriptor.get(b"FontFile").unwrap())?;
-                if let Some(content) = file.decompressed_content() {
-                    Some(FontData::Type1(Arc::new(content)))
+                if let Some(file_obj) = descriptor.get(b"FontFile") {
+                    let file = <&lopdf::Stream>::try_from_object(doc, file_obj)?;
+                    if let Some(content) = file.decompressed_content() {
+                        Some(FontData::Type1(Arc::new(content)))
+                    } else {
+                        Some(FontData::Type1(Arc::new(file.content.clone())))
+                    }
                 } else {
-                    Some(FontData::Type1(Arc::new(file.content.clone())))
+                    log::trace!("font is missing glyph data");
+                    None
                 }
             }
             unsupported => {

@@ -4,8 +4,6 @@ use failure::Fallible;
 
 use crate::pdf::data::{Name, TryFromObject};
 
-const UNICODE_REPLACEMENT_CHAR: char = '\u{FFFD}';
-
 #[derive(Debug)]
 pub enum Encoding {
     Predefined(PredefinedEncoding),
@@ -19,7 +17,13 @@ impl Encoding {
                 // TODO: consult predefined lookup table
                 char_code as char
             }
-            Encoding::Dictionary(enc) => enc.lookup(char_code as u32).unwrap_or(char_code as char),
+            Encoding::Dictionary(enc) => {
+                if let Some(glyph_name) = enc.lookup(char_code) {
+                    glyph_name.as_char()
+                } else {
+                    char_code as char
+                }
+            }
         }
     }
 }
@@ -66,13 +70,13 @@ impl<'a> TryFromObject<'a> for PredefinedEncoding {
 #[derive(Debug)]
 pub struct EncodingDictionary {
     pub base: Option<PredefinedEncoding>,
-    pub differences: BTreeMap<u32, char>,
+    pub differences: BTreeMap<u8, GlyphName>,
 }
 
 impl EncodingDictionary {
-    pub fn lookup(&self, char_code: u32) -> Option<char> {
-        if let Some(c) = self.differences.get(&char_code) {
-            Some(*c)
+    pub fn lookup(&self, char_code: u8) -> Option<&GlyphName> {
+        if let Some(glyph_name) = self.differences.get(&char_code) {
+            Some(glyph_name)
         } else {
             // TODO: consult base lookup table
             None
@@ -104,7 +108,7 @@ impl<'a> TryFromObject<'a> for EncodingDictionary {
                             index = *code as u32;
                         }
                         lopdf::Object::Name(name) => {
-                            differences.insert(index, rpdf_glyph_names::glyph_name_to_char(name));
+                            differences.insert(index as u8, GlyphName(name.clone()));
                             index += 1;
                         }
                         _ => {}
@@ -116,5 +120,14 @@ impl<'a> TryFromObject<'a> for EncodingDictionary {
         }
 
         Ok(EncodingDictionary { base, differences })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct GlyphName(Vec<u8>);
+
+impl GlyphName {
+    pub fn as_char(&self) -> char {
+        rpdf_glyph_names::glyph_name_to_char(&self.0)
     }
 }

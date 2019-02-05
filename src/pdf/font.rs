@@ -5,46 +5,31 @@ use failure::Fallible;
 
 use crate::pdf::data::{Name, Number, TryFromObject};
 
-pub mod type1;
+mod encoding;
+use self::encoding::Encoding;
 
 pub struct Font {
     first_char: i64,
     last_char: i64,
     widths: Vec<Number>,
     data: Option<FontData>,
-    encoding: FontEncoding,
+    encoding: Option<encoding::Encoding>,
 }
 
 pub enum FontData {
     Type1(Arc<Vec<u8>>),
 }
 
-#[derive(Debug)]
-pub enum FontEncoding {
-    Type1(type1::Encoding),
-    Identity,
-}
-
-impl FontEncoding {
-    pub fn translate(&self, char_code: u8) -> char {
-        match self {
-            FontEncoding::Type1(enc) => enc.translate(char_code),
-            FontEncoding::Identity => char_code as char,
-        }
-    }
-}
-
 impl Font {
     pub fn try_from_dictionary(doc: &lopdf::Document, dict: &lopdf::Dictionary) -> Fallible<Self> {
         let Name(subtype) = Name::try_from_object(doc, dict.get(b"Subtype").unwrap())?;
 
-        let mut encoding = FontEncoding::Identity;
+        let mut encoding = None;
 
         let data = match subtype.as_slice() {
             b"Type1" => {
                 if let Some(encoding_obj) = dict.get(b"Encoding") {
-                    encoding =
-                        FontEncoding::Type1(type1::Encoding::try_from_object(doc, encoding_obj)?);
+                    encoding = Some(Encoding::try_from_object(doc, encoding_obj)?);
                     log::debug!("font has encoding {:?}", encoding);
                 }
 
@@ -89,7 +74,11 @@ impl Font {
     }
 
     pub fn decode_char(&self, c: u8) -> char {
-        self.encoding.translate(c)
+        if let Some(ref encoding) = self.encoding {
+            encoding.translate(c)
+        } else {
+            c as char
+        }
     }
 
     pub fn width_for_char(&self, c: u8) -> f64 {

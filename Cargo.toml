@@ -20,7 +20,7 @@ rpdf_glyph_names = { path = "lib/glyph_names" }
 
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
-rev = "3c9bbeea72f5961592f0ee9400204f966235cf12"
+rev = "f7169e705ffdb335b7b994b31acd511179def8b2"
 
 [workspace]
 members = [

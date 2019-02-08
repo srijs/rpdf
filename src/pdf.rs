@@ -8,7 +8,7 @@ mod font;
 mod text;
 
 use self::data::TryFromObject;
-pub use self::font::{Font, FontData, FontMap};
+pub use self::font::{Font, FontMap};
 pub use self::text::{TextFragment, TextObject};
 
 pub struct Document {
@@ -76,10 +76,6 @@ impl Page {
 
     pub fn text(&self) -> &[TextObject] {
         &self.text_objects
-    }
-
-    pub fn fonts(&self) -> impl Iterator<Item = (&[u8], &Font)> {
-        self.font_map.iter()
     }
 
     pub fn font(&self, name: &[u8]) -> Option<&Font> {

@@ -18,6 +18,10 @@ structopt = "0.2.14"
 
 rpdf_glyph_names = { path = "lib/glyph_names" }
 
+[dependencies.font-kit]
+git = "https://github.com/srijs/font-kit.git"
+rev = "b2a7688470bcc784b556eff682ef10b55f93c0c9"
+
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
 rev = "f7169e705ffdb335b7b994b31acd511179def8b2"

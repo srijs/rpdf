@@ -29,13 +29,8 @@ impl<'a> PageRenderer<'a> {
         *self.font_keys.entry(name).or_insert_with(|| {
             let key = api.generate_font_key();
             if let Some(font) = page.font(name) {
-                match font.data() {
-                    Some(pdf::FontData::Type1(bytes)) => {
-                        txn.add_raw_font(key, (**bytes).clone(), 0);
-                        Some(key)
-                    }
-                    None => None,
-                }
+                txn.add_raw_font(key, font.data().to_owned(), 0);
+                Some(key)
             } else {
                 None
             }
@@ -83,12 +78,9 @@ impl<'a> PageRenderer<'a> {
                     euclid::TypedTransform2D::from_untyped(&text_fragment.transform);
                 transform.m32 = self.page.height() as f32 - transform.m32;
 
-                let font_key = match self.load_font(api, txn, &text_fragment.font_name) {
-                    Some(key) => key,
+                if self.load_font(api, txn, &text_fragment.font_name).is_none() {
                     // skip text fragments that don't have font data
-                    None => {
-                        continue;
-                    }
+                    continue;
                 };
 
                 let font_instance_key = self.load_font_instance(
@@ -99,23 +91,16 @@ impl<'a> PageRenderer<'a> {
                 );
 
                 let mut glyph_instances = Vec::with_capacity(text_fragment.glyphs.len());
-                let mut text = String::new();
 
                 let mut x = 0.0;
                 for text_glyph in text_fragment.glyphs.iter() {
-                    text.push(text_glyph.code);
                     let mut point = euclid::TypedPoint2D::from_untyped(&text_glyph.origin);
                     point.y = self.page.height() as f32 - point.y;
                     glyph_instances.push(GlyphInstance {
-                        index: 0,
+                        index: text_glyph.index,
                         point: point,
                     });
                     x += text_glyph.advance;
-                }
-
-                let glyph_indices = api.get_glyph_indices(font_key, &text);
-                for (i, glyph_index) in glyph_indices.iter().enumerate() {
-                    glyph_instances[i].index = glyph_index.unwrap_or(0);
                 }
 
                 let size = euclid::TypedSize2D::<f32, LayoutPixel>::new(x, 60.0);

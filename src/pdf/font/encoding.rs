@@ -11,18 +11,14 @@ pub enum Encoding {
 }
 
 impl Encoding {
-    pub fn translate(&self, char_code: u8) -> char {
+    pub fn lookup(&self, char_code: u8) -> Option<&GlyphName> {
         match self {
             Encoding::Predefined(_) => {
                 // TODO: consult predefined lookup table
-                char_code as char
+                None
             }
             Encoding::Dictionary(enc) => {
-                if let Some(glyph_name) = enc.lookup(char_code) {
-                    glyph_name.as_char()
-                } else {
-                    char_code as char
-                }
+                enc.lookup(char_code)
             }
         }
     }
@@ -127,7 +123,11 @@ impl<'a> TryFromObject<'a> for EncodingDictionary {
 pub struct GlyphName(Vec<u8>);
 
 impl GlyphName {
-    pub fn as_char(&self) -> char {
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+
+    pub fn to_char(&self) -> char {
         rpdf_glyph_names::glyph_name_to_char(&self.0)
     }
 }

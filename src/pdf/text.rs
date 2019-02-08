@@ -1,9 +1,10 @@
 use std::sync::Arc;
+use std::collections::HashMap;
 
 use failure::Fallible;
 
 use crate::pdf::data::{Name, Number, TryFromObject};
-use crate::pdf::font::FontMap;
+use crate::pdf::font::{FontMap, LoadedFont};
 
 const OP_BEGIN_TEXT_OBJECT: &str = "BT";
 const OP_END_TEXT_OBJECT: &str = "ET";
@@ -20,6 +21,7 @@ struct TextState {
 pub struct TextIter<'a> {
     document: Arc<lopdf::Document>,
     font_map: &'a FontMap,
+    loaded_fonts: HashMap<Vec<u8>, LoadedFont>,
     text_state: TextState,
     text_matrix: euclid::Transform2D<f32>,
     text_line_matrix: euclid::Transform2D<f32>,
@@ -47,6 +49,7 @@ impl<'a> TextIter<'a> {
         Ok(TextIter {
             document,
             font_map,
+            loaded_fonts: HashMap::new(),
             text_state,
             text_matrix: euclid::Transform2D::identity(),
             text_line_matrix: euclid::Transform2D::identity(),
@@ -56,6 +59,11 @@ impl<'a> TextIter<'a> {
     }
 
     fn flush_segment(&mut self, chars: &[u8]) {
+        let font = self.font_map.get(&self.text_state.text_font).unwrap();
+        let loaded_font = self.loaded_fonts
+            .entry(self.text_state.text_font.clone())
+            .or_insert_with(|| font.load().unwrap());
+
         let mut fragment = TextFragment {
             transform: self.text_matrix,
             font_name: self.text_state.text_font.clone(),
@@ -63,22 +71,30 @@ impl<'a> TextIter<'a> {
             line_height: self.text_state.text_leading,
             glyphs: Vec::with_capacity(chars.len()),
         };
-        let font = self.font_map.get(&self.text_state.text_font).unwrap();
+
         for c in chars {
+            let mut index = *c as u32;
+            if let Some(glyph_name) = font.decode_char(*c) {
+                index = loaded_font.glyph_index_for_name(glyph_name.as_bytes());
+            }
+
             let origin = euclid::Point2D::zero();
             let w0 = font.width_for_char(*c) as f32;
             let tx = (w0 * self.text_state.text_font_size
                 + self.text_state.char_spacing
                 + self.text_state.word_spacing)
                 * self.text_state.horizontal_scaling;
+
             fragment.glyphs.push(TextGlyph {
-                code: font.decode_char(*c),
+                index,
                 origin: self.text_matrix.transform_point(&origin),
                 advance: tx,
             });
+
             let translation = euclid::Transform2D::create_translation(tx, 0.0);
             self.text_matrix = self.text_matrix.pre_mul(&translation);
         }
+
         self.fragments.push(fragment);
     }
 
@@ -289,7 +305,7 @@ pub struct TextFragment {
 }
 
 pub struct TextGlyph {
-    pub code: char,
+    pub index: u32,
     pub origin: euclid::Point2D<f32>,
     pub advance: f32,
 }

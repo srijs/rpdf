@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use failure::Fallible;
 
-use rpdf_lopdf_extra::DocumentExt;
+use rpdf_lopdf_extra::*;
 
 mod data;
 mod font;
@@ -27,8 +27,10 @@ impl Document {
             .get_pages()
             .values()
             .map(|object_id| {
-                let page_dict = document.get_dictionary(*object_id).unwrap();
-                let media_box = document.deserialize_object(page_dict.get(b"MediaBox").unwrap())?;
+                let page_dict = document
+                    .get_dictionary(*object_id)
+                    .ok_or_else(|| failure::format_err!("page is missing dictionary"))?;
+                let media_box = document.deserialize_object(page_dict.try_get(b"MediaBox")?)?;
                 let content = document.get_page_content(*object_id)?;
                 let font_map =
                     FontMap::try_from_page_fonts(&document, document.get_page_fonts(*object_id))?;

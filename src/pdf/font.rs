@@ -4,7 +4,7 @@ use std::sync::Arc;
 use failure::Fallible;
 use serde_derive::Deserialize;
 
-use rpdf_lopdf_extra::DocumentExt;
+use rpdf_lopdf_extra::*;
 
 mod encoding;
 pub use self::encoding::GlyphName;
@@ -28,7 +28,7 @@ pub struct Font {
 
 impl Font {
     pub fn try_from_dictionary(doc: &lopdf::Document, dict: &lopdf::Dictionary) -> Fallible<Self> {
-        let subtype = doc.deserialize_object(dict.get(b"Subtype").unwrap())?;
+        let subtype = doc.deserialize_object(dict.try_get(b"Subtype")?)?;
 
         let mut encoding = None;
         if let Some(encoding_obj) = dict.get(b"Encoding") {
@@ -40,12 +40,11 @@ impl Font {
         match subtype {
             Subtype::Type1 => {
                 let descriptor = doc
-                    .resolve_object(dict.get(b"FontDescriptor").unwrap())
-                    .as_dict()
-                    .unwrap();
+                    .resolve_object(dict.try_get(b"FontDescriptor")?)?
+                    .try_as_dict()?;
 
                 if let Some(file_obj) = descriptor.get(b"FontFile") {
-                    let file = doc.resolve_object(file_obj).as_stream().unwrap();
+                    let file = doc.resolve_object(file_obj)?.try_as_stream()?;
                     if let Some(content) = file.decompressed_content() {
                         data = Arc::new(content);
                     } else {
@@ -57,9 +56,9 @@ impl Font {
             }
         };
 
-        let first_char = doc.deserialize_object(dict.get(b"FirstChar").unwrap())?;
-        let last_char = doc.deserialize_object(dict.get(b"LastChar").unwrap())?;
-        let widths = doc.deserialize_object(dict.get(b"Widths").unwrap())?;
+        let first_char = doc.deserialize_object(dict.try_get(b"FirstChar")?)?;
+        let last_char = doc.deserialize_object(dict.try_get(b"LastChar")?)?;
+        let widths = doc.deserialize_object(dict.try_get(b"Widths")?)?;
 
         Ok(Font {
             first_char,

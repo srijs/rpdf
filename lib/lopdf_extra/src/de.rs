@@ -87,7 +87,10 @@ where
             seed,
             ObjectDeserializer {
                 document: self.document,
-                object: self.object.take().unwrap(),
+                object: self
+                    .object
+                    .take()
+                    .ok_or_else(|| Error("internal error".to_owned()))?,
             },
         )
     }

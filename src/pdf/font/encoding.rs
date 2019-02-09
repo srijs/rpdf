@@ -1,10 +1,9 @@
-use std::collections::BTreeMap;
+use serde_derive::Deserialize;
 
-use failure::Fallible;
+mod differences;
 
-use crate::pdf::data::{Name, TryFromObject};
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
 pub enum Encoding {
     Predefined(PredefinedEncoding),
     Dictionary(EncodingDictionary),
@@ -17,61 +16,30 @@ impl Encoding {
                 // TODO: consult predefined lookup table
                 None
             }
-            Encoding::Dictionary(enc) => {
-                enc.lookup(char_code)
-            }
+            Encoding::Dictionary(enc) => enc.lookup(char_code),
         }
     }
 }
 
-impl<'a> TryFromObject<'a> for Encoding {
-    fn try_from_object_direct(doc: &'a lopdf::Document, obj: &'a lopdf::Object) -> Fallible<Self>
-    where
-        Self: Sized,
-    {
-        match obj {
-            lopdf::Object::Name(_) => Ok(Encoding::Predefined(
-                PredefinedEncoding::try_from_object_direct(doc, obj)?,
-            )),
-            lopdf::Object::Dictionary(_) => Ok(Encoding::Dictionary(
-                EncodingDictionary::try_from_object_direct(doc, obj)?,
-            )),
-            _ => failure::bail!("unexpected object type"),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(variant_identifier)]
 pub enum PredefinedEncoding {
     MacRomanEncoding,
     MacExpertEncoding,
     WinAnsiEncoding,
 }
 
-impl<'a> TryFromObject<'a> for PredefinedEncoding {
-    fn try_from_object_direct(doc: &'a lopdf::Document, obj: &'a lopdf::Object) -> Fallible<Self>
-    where
-        Self: Sized,
-    {
-        let Name(name) = Name::try_from_object(doc, obj)?;
-        match name.as_slice() {
-            b"MacRomanEncoding" => Ok(PredefinedEncoding::MacRomanEncoding),
-            b"MacExpertEncoding" => Ok(PredefinedEncoding::MacExpertEncoding),
-            b"WinAnsiEncoding" => Ok(PredefinedEncoding::WinAnsiEncoding),
-            _ => failure::bail!("unknown predefined encoding"),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct EncodingDictionary {
-    pub base: Option<PredefinedEncoding>,
-    pub differences: BTreeMap<u8, GlyphName>,
+    #[serde(rename = "BaseEncoding")]
+    base: Option<PredefinedEncoding>,
+    #[serde(rename = "Differences", default)]
+    differences: differences::Differences,
 }
 
 impl EncodingDictionary {
     pub fn lookup(&self, char_code: u8) -> Option<&GlyphName> {
-        if let Some(glyph_name) = self.differences.get(&char_code) {
+        if let Some(glyph_name) = self.differences.lookup(char_code) {
             Some(glyph_name)
         } else {
             // TODO: consult base lookup table
@@ -80,46 +48,7 @@ impl EncodingDictionary {
     }
 }
 
-impl<'a> TryFromObject<'a> for EncodingDictionary {
-    fn try_from_object_direct(doc: &'a lopdf::Document, obj: &'a lopdf::Object) -> Fallible<Self>
-    where
-        Self: Sized,
-    {
-        let dict = <&lopdf::Dictionary>::try_from_object(doc, obj)?;
-
-        let mut base = None;
-        if let Some(base_obj) = dict.get(b"BaseEncoding") {
-            base = Some(PredefinedEncoding::try_from_object(doc, base_obj)?);
-        }
-
-        let mut differences = BTreeMap::new();
-        if let Some(diff_obj) = dict.get(b"Differences") {
-            let diff_obj_direct = <&lopdf::Object>::try_from_object(doc, diff_obj)?;
-
-            if let Some(elements) = diff_obj_direct.as_array() {
-                let mut index = 0u32;
-                for element in elements {
-                    match element {
-                        lopdf::Object::Integer(code) => {
-                            index = *code as u32;
-                        }
-                        lopdf::Object::Name(name) => {
-                            differences.insert(index as u8, GlyphName(name.clone()));
-                            index += 1;
-                        }
-                        _ => {}
-                    }
-                }
-            } else {
-                failure::bail!("difference object is not an array");
-            }
-        }
-
-        Ok(EncodingDictionary { base, differences })
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GlyphName(Vec<u8>);
 
 impl GlyphName {
@@ -129,5 +58,34 @@ impl GlyphName {
 
     pub fn to_char(&self) -> char {
         rpdf_glyph_names::glyph_name_to_char(&self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rpdf_lopdf_extra::DocumentExt;
+
+    #[test]
+    fn deserialize_encoding_predefined() {
+        assert_eq!(
+            Encoding::Predefined(PredefinedEncoding::MacRomanEncoding),
+            lopdf::Document::new()
+                .deserialize_object(&lopdf::Object::from("MacRomanEncoding"))
+                .unwrap()
+        );
+        assert_eq!(
+            Encoding::Predefined(PredefinedEncoding::MacExpertEncoding),
+            lopdf::Document::new()
+                .deserialize_object(&lopdf::Object::from("MacExpertEncoding"))
+                .unwrap()
+        );
+        assert_eq!(
+            Encoding::Predefined(PredefinedEncoding::WinAnsiEncoding),
+            lopdf::Document::new()
+                .deserialize_object(&lopdf::Object::from("WinAnsiEncoding"))
+                .unwrap()
+        );
     }
 }

@@ -3,11 +3,12 @@ use std::sync::Arc;
 
 use failure::Fallible;
 
+use rpdf_lopdf_extra::DocumentExt;
+
 mod data;
 mod font;
 mod text;
 
-use self::data::TryFromObject;
 pub use self::font::{Font, FontMap};
 pub use self::text::{TextFragment, TextObject};
 
@@ -27,10 +28,7 @@ impl Document {
             .values()
             .map(|object_id| {
                 let page_dict = document.get_dictionary(*object_id).unwrap();
-                let media_box = data::Rectangle::try_from_object(
-                    &document,
-                    page_dict.get(b"MediaBox").unwrap(),
-                )?;
+                let media_box = document.deserialize_object(page_dict.get(b"MediaBox").unwrap())?;
                 let content = document.get_page_content(*object_id)?;
                 let font_map =
                     FontMap::try_from_page_fonts(&document, document.get_page_fonts(*object_id))?;

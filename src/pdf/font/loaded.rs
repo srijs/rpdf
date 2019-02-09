@@ -3,7 +3,7 @@ use std::sync::Arc;
 use failure::Fallible;
 
 pub struct LoadedFont {
-    inner: font_kit::loaders::default::Font
+    inner: font_kit::loaders::default::Font,
 }
 
 impl LoadedFont {

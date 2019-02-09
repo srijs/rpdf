@@ -1,9 +1,11 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use failure::Fallible;
 
-use crate::pdf::data::{Name, Number, TryFromObject};
+use rpdf_lopdf_extra::DocumentExt;
+
+use crate::pdf::data::Name;
 use crate::pdf::font::{FontMap, LoadedFont};
 
 const OP_BEGIN_TEXT_OBJECT: &str = "BT";
@@ -60,7 +62,8 @@ impl<'a> TextIter<'a> {
 
     fn flush_segment(&mut self, chars: &[u8]) {
         let font = self.font_map.get(&self.text_state.text_font).unwrap();
-        let loaded_font = self.loaded_fonts
+        let loaded_font = self
+            .loaded_fonts
             .entry(self.text_state.text_font.clone())
             .or_insert_with(|| font.load().unwrap());
 
@@ -73,7 +76,7 @@ impl<'a> TextIter<'a> {
         };
 
         for c in chars {
-            let mut index = *c as u32;
+            let mut index = u32::from(*c);
             if let Some(glyph_name) = font.decode_char(*c) {
                 index = loaded_font.glyph_index_for_name(glyph_name.as_bytes());
             }
@@ -98,42 +101,38 @@ impl<'a> TextIter<'a> {
         self.fragments.push(fragment);
     }
 
-    fn handle_text_state_operation(&mut self, operation: &lopdf::content::Operation) {
-        match operation.operator.as_str() {
+    fn handle_text_state_operation(&mut self, op: &lopdf::content::Operation) -> Fallible<()> {
+        match op.operator.as_str() {
             "Tc" => {
-                let Number(char_spacing) =
-                    Number::try_from_object(&self.document, &operation.operands[0]).unwrap();
-                self.text_state.char_spacing = char_spacing as f32;
+                let char_spacing = self.document.deserialize_object(&op.operands[0])?;
+                self.text_state.char_spacing = char_spacing;
             }
             "Tw" => {
-                let Number(word_spacing) =
-                    Number::try_from_object(&self.document, &operation.operands[0]).unwrap();
-                self.text_state.word_spacing = word_spacing as f32;
+                let word_spacing = self.document.deserialize_object(&op.operands[0])?;
+                self.text_state.word_spacing = word_spacing;
             }
             "Tz" => {
-                let Number(scale) =
-                    Number::try_from_object(&self.document, &operation.operands[0]).unwrap();
-                self.text_state.horizontal_scaling = (scale / 100.0) as f32;
+                let scale: f32 = self.document.deserialize_object(&op.operands[0])?;
+                self.text_state.horizontal_scaling = scale / 100.0;
             }
-            "TL" => match operation.operands[0] {
+            "TL" => match op.operands[0] {
                 lopdf::Object::Real(leading) => {
                     self.text_state.text_leading = leading as f32;
                 }
                 lopdf::Object::Integer(leading) => {
                     self.text_state.text_leading -= leading as f32;
                 }
-                _ => panic!("unexpected operand {:?}", operation),
+                _ => failure::bail!("unexpected operand {:?}", op),
             },
             "Tf" => {
-                let Name(font_name) =
-                    Name::try_from_object(&self.document, &operation.operands[0]).unwrap();
-                let Number(font_size) =
-                    Number::try_from_object(&self.document, &operation.operands[1]).unwrap();
+                let Name(font_name) = self.document.deserialize_object(&op.operands[0])?;
+                let font_size = self.document.deserialize_object(&op.operands[1])?;
                 self.text_state.text_font = font_name;
-                self.text_state.text_font_size = font_size as f32;
+                self.text_state.text_font_size = font_size;
             }
             _ => {}
         }
+        Ok(())
     }
 
     fn apply_translation(&mut self, x: f32, y: f32) {
@@ -151,49 +150,27 @@ impl<'a> TextIter<'a> {
         self.text_matrix = self.text_matrix.pre_mul(&translation);
     }
 
-    fn handle_text_position_operation(&mut self, operation: &lopdf::content::Operation) {
-        match operation.operator.as_str() {
+    fn handle_text_position_operation(&mut self, op: &lopdf::content::Operation) -> Fallible<()> {
+        match op.operator.as_str() {
             "Td" => {
-                let x = Number::try_from_object(&self.document, &operation.operands[0])
-                    .unwrap()
-                    .0;
-                let y = Number::try_from_object(&self.document, &operation.operands[1])
-                    .unwrap()
-                    .0;
-                self.apply_translation(x as f32, y as f32);
+                let x = self.document.deserialize_object(&op.operands[0])?;
+                let y = self.document.deserialize_object(&op.operands[1])?;
+                self.apply_translation(x, y);
             }
             "TD" => {
-                let x = Number::try_from_object(&self.document, &operation.operands[0])
-                    .unwrap()
-                    .0;
-                let y = Number::try_from_object(&self.document, &operation.operands[1])
-                    .unwrap()
-                    .0;
-                self.text_state.text_leading = -y as f32;
-                self.apply_translation(x as f32, y as f32);
+                let x = self.document.deserialize_object(&op.operands[0])?;
+                let y = self.document.deserialize_object(&op.operands[1])?;
+                self.apply_translation(x, y);
+                self.text_state.text_leading = -y;
             }
             "Tm" => {
-                let a = Number::try_from_object(&self.document, &operation.operands[0])
-                    .unwrap()
-                    .0;
-                let b = Number::try_from_object(&self.document, &operation.operands[1])
-                    .unwrap()
-                    .0;
-                let c = Number::try_from_object(&self.document, &operation.operands[2])
-                    .unwrap()
-                    .0;
-                let d = Number::try_from_object(&self.document, &operation.operands[3])
-                    .unwrap()
-                    .0;
-                let e = Number::try_from_object(&self.document, &operation.operands[4])
-                    .unwrap()
-                    .0;
-                let f = Number::try_from_object(&self.document, &operation.operands[5])
-                    .unwrap()
-                    .0;
-                let transform = euclid::Transform2D::row_major(
-                    a as f32, b as f32, c as f32, d as f32, e as f32, f as f32,
-                );
+                let a = self.document.deserialize_object(&op.operands[0])?;
+                let b = self.document.deserialize_object(&op.operands[1])?;
+                let c = self.document.deserialize_object(&op.operands[2])?;
+                let d = self.document.deserialize_object(&op.operands[3])?;
+                let e = self.document.deserialize_object(&op.operands[4])?;
+                let f = self.document.deserialize_object(&op.operands[5])?;
+                let transform = euclid::Transform2D::row_major(a, b, c, d, e, f);
                 self.text_matrix = transform;
                 self.text_line_matrix = transform;
             }
@@ -202,39 +179,38 @@ impl<'a> TextIter<'a> {
             }
             _ => {}
         }
+        Ok(())
     }
 
-    fn handle_text_show_operation(&mut self, operation: &lopdf::content::Operation) {
-        match operation.operator.as_str() {
-            "Tj" => match operation.operands[0] {
+    fn handle_text_show_operation(&mut self, op: &lopdf::content::Operation) -> Fallible<()> {
+        match op.operator.as_str() {
+            "Tj" => match op.operands[0] {
                 lopdf::Object::String(ref s, _) => {
                     self.flush_segment(s);
                 }
-                _ => panic!("unexpected operand {:?}", operation),
+                _ => failure::bail!("unexpected operand {:?}", op),
             },
-            "'" => match operation.operands[0] {
+            "'" => match op.operands[0] {
                 lopdf::Object::String(ref s, _) => {
                     self.apply_translation(0.0, self.text_state.text_leading);
                     self.flush_segment(s);
                 }
-                _ => panic!("unexpected operand {:?}", operation),
+                _ => failure::bail!("unexpected operand {:?}", op),
             },
             "\"" => {
-                let Number(word_spacing) =
-                    Number::try_from_object(&self.document, &operation.operands[0]).unwrap();
-                let Number(char_spacing) =
-                    Number::try_from_object(&self.document, &operation.operands[1]).unwrap();
-                match operation.operands[2] {
+                let word_spacing = self.document.deserialize_object(&op.operands[0])?;
+                let char_spacing = self.document.deserialize_object(&op.operands[1])?;
+                match op.operands[2] {
                     lopdf::Object::String(ref s, _) => {
-                        self.text_state.word_spacing = word_spacing as f32;
-                        self.text_state.char_spacing = char_spacing as f32;
+                        self.text_state.word_spacing = word_spacing;
+                        self.text_state.char_spacing = char_spacing;
                         self.apply_translation(0.0, self.text_state.text_leading);
                         self.flush_segment(s);
                     }
-                    _ => panic!("unexpected operand {:?}", operation),
+                    _ => failure::bail!("unexpected operand {:?}", op),
                 }
             }
-            "TJ" => match operation.operands[0] {
+            "TJ" => match op.operands[0] {
                 lopdf::Object::Array(ref parts) => {
                     for part in parts {
                         match part {
@@ -251,10 +227,11 @@ impl<'a> TextIter<'a> {
                         }
                     }
                 }
-                _ => panic!("unexpected operand {:?}", operation),
+                _ => failure::bail!("unexpected operand {:?}", op),
             },
             _ => {}
         }
+        Ok(())
     }
 }
 
@@ -275,13 +252,13 @@ impl<'a> Iterator for TextIter<'a> {
                         });
                     }
                     "Tc" | "Tw" | "Tz" | "TL" | "Tf" => {
-                        self.handle_text_state_operation(&operation);
+                        self.handle_text_state_operation(&operation).unwrap();
                     }
                     "Td" | "TD" | "Tm" | "T*" => {
-                        self.handle_text_position_operation(&operation);
+                        self.handle_text_position_operation(&operation).unwrap();
                     }
                     "Tj" | "'" | "\"" | "TJ" => {
-                        self.handle_text_show_operation(&operation);
+                        self.handle_text_show_operation(&operation).unwrap();
                     }
                     _ => {}
                 }

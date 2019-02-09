@@ -14,9 +14,12 @@ gleam = "0.6.8"
 glutin = "0.19.0"
 log = "0.4.6"
 lopdf = "0.19.0"
+serde = "1.0.80"
+serde_derive = "1.0.80"
 structopt = "0.2.14"
 
 rpdf_glyph_names = { path = "lib/glyph_names" }
+rpdf_lopdf_extra = { path = "lib/lopdf_extra" }
 
 [dependencies.font-kit]
 git = "https://github.com/srijs/font-kit.git"
@@ -28,5 +31,6 @@ rev = "f7169e705ffdb335b7b994b31acd511179def8b2"
 
 [workspace]
 members = [
-  "lib/glyph_names"
+  "lib/glyph_names",
+  "lib/lopdf_extra"
 ]

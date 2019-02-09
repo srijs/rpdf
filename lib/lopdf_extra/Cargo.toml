@@ -1,0 +1,11 @@
+[package]
+name = "rpdf_lopdf_extra"
+version = "0.1.0"
+authors = ["Sam Rijs <srijs@airpost.net>"]
+edition = "2018"
+workspace = "../.."
+
+[dependencies]
+failure = "0.1.5"
+lopdf = "0.19.0"
+serde = "1.0.80"

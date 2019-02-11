@@ -65,11 +65,10 @@ impl<'a> PageRenderer<'a> {
 
     pub fn render(
         &mut self,
+        scale: euclid::TypedScale<f32, LayoutPixel, LayoutPixel>,
         api: &RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
-        pipeline_id: PipelineId,
-        document_id: DocumentId,
         space_and_clip: &SpaceAndClipInfo,
     ) {
         for text_object in self.page.text() {
@@ -83,32 +82,28 @@ impl<'a> PageRenderer<'a> {
                     continue;
                 };
 
-                let font_instance_key = self.load_font_instance(
-                    api,
-                    txn,
-                    &text_fragment.font_name,
-                    text_fragment.font_size as u32,
-                );
+                let font_size = text_fragment.font_size * scale.get();
+                let font_instance_key =
+                    self.load_font_instance(api, txn, &text_fragment.font_name, font_size as u32);
 
                 let mut glyph_instances = Vec::with_capacity(text_fragment.glyphs.len());
 
-                let mut x = 0.0;
                 for text_glyph in text_fragment.glyphs.iter() {
                     let mut point = euclid::TypedPoint2D::from_untyped(&text_glyph.origin);
                     point.y = self.page.height() as f32 - point.y;
                     glyph_instances.push(GlyphInstance {
                         index: text_glyph.index,
-                        point: point,
+                        point: scale.transform_point(&point),
                     });
-                    x += text_glyph.advance;
                 }
 
-                let size = euclid::TypedSize2D::<f32, LayoutPixel>::new(x, 60.0);
+                let size =
+                    euclid::TypedSize2D::<f32, LayoutPixel>::new(self.page.width() as f32, 60.0);
                 let rect = euclid::TypedRect::<f32, LayoutPixel>::new(
                     euclid::TypedPoint2D::<f32, LayoutPixel>::new(0.0, -30.0),
                     size,
                 );
-                let transformed_rect = transform.transform_rect(&rect);
+                let transformed_rect = scale.transform_rect(&transform.transform_rect(&rect));
 
                 log::trace!("push text {:?} {:?}", glyph_instances, transformed_rect);
 

@@ -104,6 +104,15 @@ fn render<'env>(scope: &thread::Scope<'env>, pages: &'env [pdf::Page]) -> Fallib
                             .to_physical(device_pixel_ratio);
                         webrender::api::DeviceIntSize::new(size.width as i32, size.height as i32)
                     };
+                    api.set_window_parameters(
+                        document_id,
+                        framebuffer_size,
+                        webrender::api::DeviceIntRect::new(
+                            webrender::api::DeviceIntPoint::zero(),
+                            framebuffer_size,
+                        ),
+                        device_pixel_ratio as f32,
+                    );
                     needs_render = true;
                     needs_repaint = true;
                 }

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use app_units::Au;
 use webrender::api::*;
 
 use crate::pdf;
@@ -7,7 +8,7 @@ use crate::pdf;
 pub struct PageRenderer<'a> {
     page: &'a pdf::Page,
     font_keys: HashMap<&'a [u8], Option<FontKey>>,
-    font_instance_keys: HashMap<(&'a [u8], u32), FontInstanceKey>,
+    font_instance_keys: HashMap<(&'a [u8], Au), FontInstanceKey>,
 }
 
 impl<'a> PageRenderer<'a> {
@@ -42,23 +43,17 @@ impl<'a> PageRenderer<'a> {
         api: &RenderApi,
         txn: &mut Transaction,
         name: &'a [u8],
-        size: u32,
+        size: f32,
     ) -> FontInstanceKey {
+        let au = Au::from_f32_px(size);
         let font_keys = &self.font_keys;
         *self
             .font_instance_keys
-            .entry((name, size))
+            .entry((name, au))
             .or_insert_with(|| {
                 let key = api.generate_font_instance_key();
                 let font_key = font_keys[name].unwrap();
-                txn.add_font_instance(
-                    key,
-                    font_key,
-                    app_units::Au::from_px(size as i32),
-                    None,
-                    None,
-                    vec![],
-                );
+                txn.add_font_instance(key, font_key, au, None, None, vec![]);
                 key
             })
     }
@@ -84,7 +79,7 @@ impl<'a> PageRenderer<'a> {
 
                 let font_size = text_fragment.font_size * scale.get();
                 let font_instance_key =
-                    self.load_font_instance(api, txn, &text_fragment.font_name, font_size as u32);
+                    self.load_font_instance(api, txn, &text_fragment.font_name, font_size);
 
                 let mut glyph_instances = Vec::with_capacity(text_fragment.glyphs.len());
 

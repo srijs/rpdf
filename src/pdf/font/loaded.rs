@@ -20,4 +20,8 @@ impl LoadedFont {
             0
         }
     }
+
+    pub fn glyph_index_for_char(&self, character: char) -> u32 {
+        self.inner.glyph_for_char(character).unwrap_or(0)
+    }
 }

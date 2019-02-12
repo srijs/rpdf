@@ -76,9 +76,11 @@ impl<'a> TextIter<'a> {
         };
 
         for c in chars {
-            let mut index = u32::from(*c);
+            let index;
             if let Some(glyph_name) = font.decode_char(*c) {
                 index = loaded_font.glyph_index_for_name(glyph_name.as_bytes());
+            } else {
+                index = loaded_font.glyph_index_for_char(*c as char);
             }
 
             let origin = euclid::Point2D::zero();

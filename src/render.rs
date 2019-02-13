@@ -154,14 +154,15 @@ impl<'a> BackgroundRenderer<'a> {
             .map(|(size, _)| size.width as i64)
             .max()
             .unwrap_or(0) as f32;
-        let total_height = self
-            .page_renderers
-            .iter()
-            .map(|(size, _)| size.height + 10.0)
-            .sum::<f32>()
-            + 10.0;
 
         let page_scale_factor = euclid::TypedScale::new((layout_size.width - 20.0) / total_width);
+
+        let total_scaled_height = self
+            .page_renderers
+            .iter()
+            .map(|(size, _)| size.height * page_scale_factor.get() + 10.0)
+            .sum::<f32>()
+            + 10.0;
 
         for i in 0..self.page_renderers.len() {
             let mut txn = Transaction::new();
@@ -196,7 +197,7 @@ impl<'a> BackgroundRenderer<'a> {
             None,
             euclid::TypedRect::new(
                 euclid::TypedPoint2D::zero(),
-                euclid::TypedSize2D::new(layout_size.width, total_height * page_scale_factor.get()),
+                euclid::TypedSize2D::new(layout_size.width, total_scaled_height),
             ),
             euclid::TypedRect::new(euclid::TypedPoint2D::zero(), layout_size),
             vec![],
@@ -206,7 +207,7 @@ impl<'a> BackgroundRenderer<'a> {
 
         let mut info = webrender::api::LayoutPrimitiveInfo::new(webrender::api::LayoutRect::new(
             euclid::TypedPoint2D::zero(),
-            euclid::TypedSize2D::new(layout_size.width, total_height * page_scale_factor.get()),
+            euclid::TypedSize2D::new(layout_size.width, total_scaled_height),
         ));
         info.tag = Some((0, 1));
         builder.push_rect(

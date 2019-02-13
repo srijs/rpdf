@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Sam Rijs <srijs@airpost.net>"]
 edition = "2018"
 
+[[bin]]
+name = "rpdf"
+path = "bin/main.rs"
+
 [dependencies]
 app_units = "0.7.1"
 crossbeam = "0.7.1"

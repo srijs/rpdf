@@ -6,7 +6,6 @@ use failure::Fallible;
 use glutin::GlContext;
 use structopt::StructOpt;
 
-mod pdf;
 mod render;
 
 #[derive(Debug, StructOpt)]
@@ -16,7 +15,7 @@ struct Opt {
     input: PathBuf,
 }
 
-fn render<'env>(scope: &thread::Scope<'env>, pages: &'env [pdf::Page]) -> Fallible<()> {
+fn render<'env>(scope: &thread::Scope<'env>, pages: &'env [rpdf::Page]) -> Fallible<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("rPDF")
@@ -194,7 +193,7 @@ fn main() -> Fallible<()> {
     let opt = Opt::from_args();
 
     let input_file = File::open(&opt.input)?;
-    let document = pdf::Document::parse(input_file)?;
+    let document = rpdf::Document::parse(input_file)?;
     let pages = document.pages();
 
     thread::scope(|scope| render(scope, pages)).unwrap()?;

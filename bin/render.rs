@@ -198,6 +198,7 @@ impl<'a> BackgroundRenderer<'a> {
             vec![],
             None,
             webrender::api::ScrollSensitivity::ScriptAndInputEvents,
+            LayoutPoint::zero(),
         );
 
         let mut info = webrender::api::LayoutPrimitiveInfo::new(webrender::api::LayoutRect::new(

@@ -31,7 +31,7 @@ rev = "b2a7688470bcc784b556eff682ef10b55f93c0c9"
 
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
-rev = "f7169e705ffdb335b7b994b31acd511179def8b2"
+rev = "d47bd44e9e24a171a7cddcd6f9bae104cf1b056d"
 
 [workspace]
 members = [

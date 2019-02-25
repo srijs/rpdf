@@ -196,7 +196,7 @@ impl<'a> BackgroundRenderer<'a> {
         );
         let scroll_space_and_clip = builder.define_scroll_frame(
             &space_and_clip,
-            None,
+            Some(ExternalScrollId(1, pipeline_id)),
             euclid::TypedRect::new(
                 euclid::TypedPoint2D::zero(),
                 euclid::TypedSize2D::new(layout_size.width, total_scaled_height),

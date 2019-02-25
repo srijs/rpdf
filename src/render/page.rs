@@ -15,6 +15,7 @@ impl<'a> PageRenderer<'a> {
 
     pub fn render(
         &mut self,
+        scale: euclid::TypedScale<f32, LayoutPixel, LayoutPixel>,
         api: &RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
@@ -34,7 +35,7 @@ impl<'a> PageRenderer<'a> {
                     continue;
                 };
 
-                let font_size = text_fragment.font_size;
+                let font_size = text_fragment.font_size * scale.get();
                 let font_instance_key =
                     font_context.load_font_instance(api, txn, &text_fragment.font_name, font_size);
 
@@ -45,7 +46,7 @@ impl<'a> PageRenderer<'a> {
                     point.y = self.page.height() as f32 - point.y;
                     glyph_instances.push(GlyphInstance {
                         index: text_glyph.index,
-                        point: point,
+                        point: scale.transform_point(&point),
                     });
                 }
 
@@ -55,7 +56,7 @@ impl<'a> PageRenderer<'a> {
                     euclid::TypedPoint2D::<f32, LayoutPixel>::new(0.0, -30.0),
                     size,
                 );
-                let transformed_rect = transform.transform_rect(&rect);
+                let transformed_rect = scale.transform_rect(&transform.transform_rect(&rect));
 
                 log::trace!("push text {:?} {:?}", glyph_instances, transformed_rect);
 

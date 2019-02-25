@@ -171,9 +171,10 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env rpdf::Document) -> 
             gl_window.swap_buffers().unwrap();
         }
 
+        let layout_size =
+            framebuffer_size.to_f32() / euclid::TypedScale::new(device_pixel_ratio as f32);
+
         if needs_render {
-            let layout_size =
-                framebuffer_size.to_f32() / euclid::TypedScale::new(device_pixel_ratio as f32);
             epoch = webrender::api::Epoch(epoch.0 + 1);
             background.render(epoch, pipeline_id, document_id, layout_size);
         }

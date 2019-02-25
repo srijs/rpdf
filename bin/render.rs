@@ -3,6 +3,9 @@ use std::sync::{Arc, Condvar, Mutex};
 use crossbeam::thread;
 use webrender::api::*;
 
+const PAGE_SPACING_X: f32 = 10.0;
+const PAGE_SPACING_Y: f32 = 10.0;
+
 enum BackgroundRenderRequest {
     Render {
         epoch: Epoch,
@@ -105,17 +108,14 @@ impl<'a> BackgroundRenderer<'a> {
     fn render_page(
         &mut self,
         index: usize,
-        scale: euclid::TypedScale<f32, LayoutPixel, LayoutPixel>,
         txn: &mut Transaction,
-        document_id: DocumentId,
     ) -> (PipelineId, LayoutSize, BuiltDisplayList) {
         let page = &self.document.pages()[index];
         let size = LayoutSize::new(page.width() as f32, page.height() as f32);
-        let scaled_size = scale.transform_size(&size);
         let page_pipeline_id = PipelineId(1, index as u32);
         let space_and_clip = SpaceAndClipInfo::root_scroll(page_pipeline_id);
         let mut builder = DisplayListBuilder::new(page_pipeline_id, size);
-        let info = LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_size));
+        let info = LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), size));
         builder.push_stacking_context(
             &info,
             space_and_clip.spatial_id,
@@ -128,7 +128,6 @@ impl<'a> BackgroundRenderer<'a> {
         );
         self.document_renderer.render_page(
             index as usize,
-            scale,
             &self.api,
             &mut builder,
             txn,
@@ -155,27 +154,28 @@ impl<'a> BackgroundRenderer<'a> {
             .max()
             .unwrap_or(0) as f32;
 
-        let page_scale_factor = euclid::TypedScale::new((layout_size.width - 20.0) / total_width);
+        let page_scale_factor =
+            euclid::TypedScale::new((layout_size.width - (PAGE_SPACING_X * 2.0)) / total_width);
 
         let total_scaled_height = self
             .document
             .pages()
             .iter()
-            .map(|page| page.height() as f32 * page_scale_factor.get() + 10.0)
+            .map(|page| page.height() as f32 * page_scale_factor.get() + PAGE_SPACING_Y)
             .sum::<f32>()
-            + 10.0;
+            + PAGE_SPACING_Y;
 
         for (index, page) in self.document.pages().iter().enumerate() {
             let size = LayoutSize::new(page.width() as f32, page.height() as f32);
             let mut txn = Transaction::new();
-            let output = self.render_page(index, page_scale_factor, &mut txn, document_id);
+            let output = self.render_page(index, &mut txn);
             txn.set_display_list(Epoch(0), None, size, output, true);
             self.api.send_transaction(document_id, txn);
         }
 
-        let space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
         let mut txn = webrender::api::Transaction::new();
         let mut builder = webrender::api::DisplayListBuilder::new(pipeline_id, layout_size);
+        let space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
         builder.push_rect(
             &LayoutPrimitiveInfo::new(LayoutRect::new(euclid::TypedPoint2D::zero(), layout_size)),
             &space_and_clip,
@@ -223,23 +223,20 @@ impl<'a> BackgroundRenderer<'a> {
         for (index, page) in self.document.pages().iter().enumerate() {
             let page_size = LayoutSize::new(page.width() as f32, page.height() as f32);
             let scaled_page_size = page_scale_factor.transform_size(&page_size);
-
-            builder.push_stacking_context(
-                &LayoutPrimitiveInfo::new(LayoutRect::new(
-                    LayoutPoint::new(10.0, y + 10.0),
-                    scaled_page_size,
-                )),
+            let mut page_space_and_clip = scroll_space_and_clip;
+            page_space_and_clip.spatial_id = builder.push_reference_frame(
+                &LayoutRect::new(LayoutPoint::zero(), scaled_page_size),
                 scroll_space_and_clip.spatial_id,
-                None,
                 TransformStyle::Flat,
-                MixBlendMode::Normal,
-                &[],
-                RasterSpace::Screen,
-                false,
+                PropertyBinding::Value(
+                    LayoutTransform::create_translation(PAGE_SPACING_X, y + PAGE_SPACING_Y, 0.0)
+                        .pre_scale(page_scale_factor.get(), page_scale_factor.get(), 1.0),
+                ),
+                ReferenceFrameKind::Transform,
             );
             builder.push_shadow(
-                &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_page_size)),
-                &scroll_space_and_clip,
+                &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), page_size)),
+                &page_space_and_clip,
                 Shadow {
                     offset: LayoutVector2D::zero(),
                     color: ColorF::BLACK,
@@ -248,25 +245,23 @@ impl<'a> BackgroundRenderer<'a> {
                 },
             );
             builder.push_rect(
-                &LayoutPrimitiveInfo::new(LayoutRect::new(
-                    euclid::TypedPoint2D::zero(),
-                    scaled_page_size,
-                )),
-                &scroll_space_and_clip,
+                &LayoutPrimitiveInfo::new(LayoutRect::new(euclid::TypedPoint2D::zero(), page_size)),
+                &page_space_and_clip,
                 ColorF::WHITE,
             );
             builder.pop_all_shadows();
             builder.push_iframe(
-                &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_page_size)),
-                &scroll_space_and_clip,
+                &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), page_size)),
+                &page_space_and_clip,
                 PipelineId(1, index as u32),
                 true,
             );
-            builder.pop_stacking_context();
-            y += 10.0 + scaled_page_size.height;
+            builder.pop_reference_frame();
+            y += PAGE_SPACING_Y + scaled_page_size.height;
         }
 
         builder.pop_stacking_context();
+        builder.pop_reference_frame();
         txn.set_display_list(
             epoch,
             Some(webrender::api::ColorF::new(1.0, 1.0, 1.0, 1.0)),

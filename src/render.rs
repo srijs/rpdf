@@ -31,19 +31,11 @@ impl<'a> DocumentRenderer<'a> {
     pub fn render_page(
         &mut self,
         index: usize,
-        scale: euclid::TypedScale<f32, LayoutPixel, LayoutPixel>,
         api: &RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
         space_and_clip: &SpaceAndClipInfo,
     ) {
-        self.page_renderers[index].render(
-            scale,
-            api,
-            builder,
-            txn,
-            space_and_clip,
-            &mut self.font_context,
-        )
+        self.page_renderers[index].render(api, builder, txn, space_and_clip, &mut self.font_context)
     }
 }

@@ -51,6 +51,7 @@ impl<'a> BackgroundRendererRequestSender<'a> {
 
 pub struct BackgroundRenderer<'a> {
     page_renderers: Vec<(LayoutSize, rpdf::PageRenderer<'a>)>,
+    font_context: rpdf::FontRenderContext<'a>,
     api: RenderApi,
     state: Arc<(Mutex<Option<BackgroundRenderRequest>>, Condvar)>,
 }
@@ -74,6 +75,7 @@ impl<'a> BackgroundRenderer<'a> {
 
         let mut engine = Self {
             page_renderers,
+            font_context: rpdf::FontRenderContext::default(),
             api,
             state: state.clone(),
         };
@@ -129,7 +131,14 @@ impl<'a> BackgroundRenderer<'a> {
             webrender::api::RasterSpace::Screen,
             false,
         );
-        page_renderer.render(scale, &self.api, &mut builder, txn, &space_and_clip);
+        page_renderer.render(
+            scale,
+            &self.api,
+            &mut builder,
+            txn,
+            &space_and_clip,
+            &mut self.font_context,
+        );
         builder.pop_stacking_context();
         builder.finalize()
     }

@@ -5,57 +5,15 @@ use webrender::api::*;
 
 use crate::pdf;
 
+use super::text::FontRenderContext;
+
 pub struct PageRenderer<'a> {
     page: &'a pdf::Page,
-    font_keys: HashMap<&'a [u8], Option<FontKey>>,
-    font_instance_keys: HashMap<(&'a [u8], Au), FontInstanceKey>,
 }
 
 impl<'a> PageRenderer<'a> {
     pub fn new(page: &'a pdf::Page) -> Self {
-        Self {
-            page,
-            font_keys: HashMap::new(),
-            font_instance_keys: HashMap::new(),
-        }
-    }
-
-    fn load_font(
-        &mut self,
-        api: &RenderApi,
-        txn: &mut Transaction,
-        name: &'a [u8],
-    ) -> Option<FontKey> {
-        let page = self.page;
-        *self.font_keys.entry(name).or_insert_with(|| {
-            let key = api.generate_font_key();
-            if let Some(font) = page.font(name) {
-                txn.add_raw_font(key, font.data().to_owned(), 0);
-                Some(key)
-            } else {
-                None
-            }
-        })
-    }
-
-    fn load_font_instance(
-        &mut self,
-        api: &RenderApi,
-        txn: &mut Transaction,
-        name: &'a [u8],
-        size: f32,
-    ) -> FontInstanceKey {
-        let au = Au::from_f32_px(size);
-        let font_keys = &self.font_keys;
-        *self
-            .font_instance_keys
-            .entry((name, au))
-            .or_insert_with(|| {
-                let key = api.generate_font_instance_key();
-                let font_key = font_keys[name].unwrap();
-                txn.add_font_instance(key, font_key, au, None, None, vec![]);
-                key
-            })
+        Self { page }
     }
 
     pub fn render(
@@ -65,6 +23,7 @@ impl<'a> PageRenderer<'a> {
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
         space_and_clip: &SpaceAndClipInfo,
+        font_context: &mut FontRenderContext<'a>,
     ) {
         for text_object in self.page.text() {
             for text_fragment in text_object.fragments.iter() {
@@ -72,14 +31,16 @@ impl<'a> PageRenderer<'a> {
                     euclid::TypedTransform2D::from_untyped(&text_fragment.transform);
                 transform.m32 = self.page.height() as f32 - transform.m32;
 
-                if self.load_font(api, txn, &text_fragment.font_name).is_none() {
+                if let Some(font) = self.page.font(&text_fragment.font_name) {
+                    font_context.load_font(api, txn, &text_fragment.font_name, font);
+                } else {
                     // skip text fragments that don't have font data
                     continue;
                 };
 
                 let font_size = text_fragment.font_size * scale.get();
                 let font_instance_key =
-                    self.load_font_instance(api, txn, &text_fragment.font_name, font_size);
+                    font_context.load_font_instance(api, txn, &text_fragment.font_name, font_size);
 
                 let mut glyph_instances = Vec::with_capacity(text_fragment.glyphs.len());
 

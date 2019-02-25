@@ -1,4 +1,4 @@
 mod pdf;
 pub use self::pdf::{Document, Page};
 mod render;
-pub use self::render::{FontRenderContext, PageRenderer};
+pub use self::render::DocumentRenderer;

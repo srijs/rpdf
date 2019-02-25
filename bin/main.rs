@@ -15,7 +15,8 @@ struct Opt {
     input: PathBuf,
 }
 
-fn render<'env>(scope: &thread::Scope<'env>, pages: &'env [rpdf::Page]) -> Fallible<()> {
+fn render<'env>(scope: &thread::Scope<'env>, document: &'env rpdf::Document) -> Fallible<()> {
+    let pages = document.pages();
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("rPDF")
@@ -73,7 +74,7 @@ fn render<'env>(scope: &thread::Scope<'env>, pages: &'env [rpdf::Page]) -> Falli
     txn.generate_frame();
     api.send_transaction(document_id, txn);
 
-    let background = render::BackgroundRenderer::spawn(scope, pages, bgapi);
+    let background = render::BackgroundRenderer::spawn(scope, document, bgapi);
     background.render(epoch, pipeline_id, document_id, layout_size);
 
     // Stores the currently known cursor position.
@@ -194,9 +195,8 @@ fn main() -> Fallible<()> {
 
     let input_file = File::open(&opt.input)?;
     let document = rpdf::Document::parse(input_file)?;
-    let pages = document.pages();
 
-    thread::scope(|scope| render(scope, pages)).unwrap()?;
+    thread::scope(|scope| render(scope, &document)).unwrap()?;
 
     Ok(())
 }

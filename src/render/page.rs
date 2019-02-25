@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use app_units::Au;
 use webrender::api::*;
 
 use crate::pdf;

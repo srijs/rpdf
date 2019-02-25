@@ -50,8 +50,8 @@ impl<'a> BackgroundRendererRequestSender<'a> {
 }
 
 pub struct BackgroundRenderer<'a> {
-    page_renderers: Vec<(LayoutSize, rpdf::PageRenderer<'a>)>,
-    font_context: rpdf::FontRenderContext<'a>,
+    document: &'a rpdf::Document,
+    document_renderer: rpdf::DocumentRenderer<'a>,
     api: RenderApi,
     state: Arc<(Mutex<Option<BackgroundRenderRequest>>, Condvar)>,
 }
@@ -59,23 +59,17 @@ pub struct BackgroundRenderer<'a> {
 impl<'a> BackgroundRenderer<'a> {
     pub fn spawn<'scope>(
         scope: &'scope thread::Scope<'a>,
-        pages: &'a [rpdf::Page],
+        document: &'a rpdf::Document,
         api: RenderApi,
     ) -> BackgroundRendererRequestSender<'scope> {
         let mutex = Mutex::new(None);
         let condvar = Condvar::new();
         let state = Arc::new((mutex, condvar));
-        let page_renderers = pages
-            .iter()
-            .map(|page| {
-                let size = LayoutSize::new(page.width() as f32, page.height() as f32);
-                (size, rpdf::PageRenderer::new(page))
-            })
-            .collect::<Vec<_>>();
+        let document_renderer = rpdf::DocumentRenderer::new(document);
 
         let mut engine = Self {
-            page_renderers,
-            font_context: rpdf::FontRenderContext::default(),
+            document,
+            document_renderer,
             api,
             state: state.clone(),
         };
@@ -110,14 +104,15 @@ impl<'a> BackgroundRenderer<'a> {
 
     fn render_page(
         &mut self,
-        index: u32,
+        index: usize,
         scale: euclid::TypedScale<f32, LayoutPixel, LayoutPixel>,
         txn: &mut Transaction,
         document_id: DocumentId,
     ) -> (PipelineId, LayoutSize, BuiltDisplayList) {
-        let (size, ref mut page_renderer) = self.page_renderers[index as usize];
+        let page = &self.document.pages()[index];
+        let size = LayoutSize::new(page.width() as f32, page.height() as f32);
         let scaled_size = scale.transform_size(&size);
-        let page_pipeline_id = PipelineId(1, index);
+        let page_pipeline_id = PipelineId(1, index as u32);
         let space_and_clip = SpaceAndClipInfo::root_scroll(page_pipeline_id);
         let mut builder = DisplayListBuilder::new(page_pipeline_id, size);
         let info = LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_size));
@@ -131,13 +126,13 @@ impl<'a> BackgroundRenderer<'a> {
             webrender::api::RasterSpace::Screen,
             false,
         );
-        page_renderer.render(
+        self.document_renderer.render_page(
+            index as usize,
             scale,
             &self.api,
             &mut builder,
             txn,
             &space_and_clip,
-            &mut self.font_context,
         );
         builder.pop_stacking_context();
         builder.finalize()
@@ -153,25 +148,28 @@ impl<'a> BackgroundRenderer<'a> {
         log::debug!("background render start");
 
         let total_width = self
-            .page_renderers
+            .document
+            .pages()
             .iter()
-            .map(|(size, _)| size.width as i64)
+            .map(|page| page.width() as i64)
             .max()
             .unwrap_or(0) as f32;
 
         let page_scale_factor = euclid::TypedScale::new((layout_size.width - 20.0) / total_width);
 
         let total_scaled_height = self
-            .page_renderers
+            .document
+            .pages()
             .iter()
-            .map(|(size, _)| size.height * page_scale_factor.get() + 10.0)
+            .map(|page| page.height() as f32 * page_scale_factor.get() + 10.0)
             .sum::<f32>()
             + 10.0;
 
-        for i in 0..self.page_renderers.len() {
+        for (index, page) in self.document.pages().iter().enumerate() {
+            let size = LayoutSize::new(page.width() as f32, page.height() as f32);
             let mut txn = Transaction::new();
-            let output = self.render_page(i as u32, page_scale_factor, &mut txn, document_id);
-            txn.set_display_list(Epoch(0), None, self.page_renderers[i].0, output, true);
+            let output = self.render_page(index, page_scale_factor, &mut txn, document_id);
+            txn.set_display_list(Epoch(0), None, size, output, true);
             self.api.send_transaction(document_id, txn);
         }
 
@@ -222,8 +220,9 @@ impl<'a> BackgroundRenderer<'a> {
         );
 
         let mut y = 0.0;
-        for (i, (page_size, _)) in self.page_renderers.iter_mut().enumerate() {
-            let scaled_page_size = page_scale_factor.transform_size(page_size);
+        for (index, page) in self.document.pages().iter().enumerate() {
+            let page_size = LayoutSize::new(page.width() as f32, page.height() as f32);
+            let scaled_page_size = page_scale_factor.transform_size(&page_size);
 
             builder.push_stacking_context(
                 &LayoutPrimitiveInfo::new(LayoutRect::new(
@@ -260,7 +259,7 @@ impl<'a> BackgroundRenderer<'a> {
             builder.push_iframe(
                 &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_page_size)),
                 &scroll_space_and_clip,
-                PipelineId(1, i as u32),
+                PipelineId(1, index as u32),
                 true,
             );
             builder.pop_stacking_context();

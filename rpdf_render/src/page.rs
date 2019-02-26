@@ -1,15 +1,15 @@
 use webrender::api::*;
 
-use crate::pdf;
+use rpdf_document::Page;
 
 use super::text::FontRenderContext;
 
 pub struct PageRenderer<'a> {
-    page: &'a pdf::Page,
+    page: &'a Page,
 }
 
 impl<'a> PageRenderer<'a> {
-    pub fn new(page: &'a pdf::Page) -> Self {
+    pub fn new(page: &'a Page) -> Self {
         Self { page }
     }
 

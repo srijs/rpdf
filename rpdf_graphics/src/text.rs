@@ -5,8 +5,8 @@ use failure::Fallible;
 
 use rpdf_lopdf_extra::DocumentExt;
 
-use crate::pdf::data::Name;
-use crate::pdf::font::{FontMap, LoadedFont};
+use crate::data::Name;
+use crate::font::{FontMap, LoadedFont};
 
 const OP_BEGIN_TEXT_OBJECT: &str = "BT";
 const OP_END_TEXT_OBJECT: &str = "ET";

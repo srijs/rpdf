@@ -1,0 +1,17 @@
+[package]
+name = "rpdf_render"
+version = "0.1.0"
+authors = ["Sam Rijs <srijs@airpost.net>"]
+edition = "2018"
+
+[dependencies]
+app_units = "0.7.1"
+euclid = "0.19.5"
+failure = "0.1.5"
+log = "0.4.6"
+
+rpdf_document = { path = "../rpdf_document" }
+
+[dependencies.webrender]
+git = "https://github.com/servo/webrender"
+rev = "d47bd44e9e24a171a7cddcd6f9bae104cf1b056d"

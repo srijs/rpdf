@@ -1316,22 +1316,29 @@ dependencies = [
 name = "rpdf"
 version = "0.1.0"
 dependencies = [
- "app_units 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "font-kit 0.1.0 (git+https://github.com/srijs/font-kit.git?rev=b2a7688470bcc784b556eff682ef10b55f93c0c9)",
  "gleam 0.6.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rpdf_glyph_names 0.1.0",
- "rpdf_lopdf_extra 0.1.0",
- "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpdf_document 0.1.0",
+ "rpdf_render 0.1.0",
  "structopt 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender 0.60.0 (git+https://github.com/servo/webrender?rev=d47bd44e9e24a171a7cddcd6f9bae104cf1b056d)",
+]
+
+[[package]]
+name = "rpdf_document"
+version = "0.1.0"
+dependencies = [
+ "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpdf_graphics 0.1.0",
+ "rpdf_lopdf_extra 0.1.0",
 ]
 
 [[package]]
@@ -1344,12 +1351,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpdf_graphics"
+version = "0.1.0"
+dependencies = [
+ "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "font-kit 0.1.0 (git+https://github.com/srijs/font-kit.git?rev=b2a7688470bcc784b556eff682ef10b55f93c0c9)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpdf_glyph_names 0.1.0",
+ "rpdf_lopdf_extra 0.1.0",
+ "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "rpdf_lopdf_extra"
 version = "0.1.0"
 dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rpdf_render"
+version = "0.1.0"
+dependencies = [
+ "app_units 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.19.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpdf_document 0.1.0",
+ "webrender 0.60.0 (git+https://github.com/servo/webrender?rev=d47bd44e9e24a171a7cddcd6f9bae104cf1b056d)",
 ]
 
 [[package]]

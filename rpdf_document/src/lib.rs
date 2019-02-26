@@ -3,14 +3,11 @@ use std::sync::Arc;
 
 use failure::Fallible;
 
+pub use rpdf_graphics::font::{Font, FontMap};
+pub use rpdf_graphics::text::{TextFragment, TextObject};
+use rpdf_graphics::*;
+
 use rpdf_lopdf_extra::*;
-
-mod data;
-mod font;
-mod text;
-
-pub use self::font::{Font, FontMap};
-pub use self::text::{TextFragment, TextObject};
 
 pub struct Document {
     inner: Arc<lopdf::Document>,

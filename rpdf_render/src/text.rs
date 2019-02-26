@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use app_units::Au;
 use webrender::api::*;
 
-use crate::pdf;
+use rpdf_document::Font;
 
 #[derive(Default)]
 pub struct FontRenderContext<'a> {
@@ -17,7 +17,7 @@ impl<'a> FontRenderContext<'a> {
         api: &RenderApi,
         txn: &mut Transaction,
         name: &'a [u8],
-        font: &pdf::Font,
+        font: &Font,
     ) -> FontKey {
         *self.font_keys.entry(name).or_insert_with(|| {
             let key = api.generate_font_key();

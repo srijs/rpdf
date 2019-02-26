@@ -1,0 +1,20 @@
+[package]
+name = "rpdf_graphics"
+version = "0.1.0"
+authors = ["Sam Rijs <srijs@airpost.net>"]
+edition = "2018"
+
+[dependencies]
+euclid = "0.19.5"
+failure = "0.1.5"
+log = "0.4.6"
+lopdf = "0.19.0"
+serde = "1.0.80"
+serde_derive = "1.0.80"
+
+rpdf_glyph_names = { path = "../lib/glyph_names" }
+rpdf_lopdf_extra = { path = "../lib/lopdf_extra" }
+
+[dependencies.font-kit]
+git = "https://github.com/srijs/font-kit.git"
+rev = "b2a7688470bcc784b556eff682ef10b55f93c0c9"

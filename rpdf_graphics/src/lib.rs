@@ -14,12 +14,14 @@ pub enum GraphicsObject {
 }
 
 pub struct GraphicsState {
+    transform: euclid::Transform2D<f32>,
     text_state: text::TextState,
 }
 
-impl GraphicsState {
-    fn new() -> Self {
+impl Default for GraphicsState {
+    fn default() -> Self {
         GraphicsState {
+            transform: euclid::Transform2D::identity(),
             text_state: text::TextState::default(),
         }
     }
@@ -48,7 +50,7 @@ impl<'a> GraphicsObjectDecoder<'a> {
             document,
             font_map,
             operations: content.operations.into_iter(),
-            state: GraphicsState::new(),
+            state: GraphicsState::default(),
             builder: None,
         })
     }
@@ -77,8 +79,7 @@ impl<'a> GraphicsObjectDecoder<'a> {
                     }
                     _ => match self.builder {
                         Some(GraphicsObjectBuilder::Text(ref mut text_builder)) => {
-                            text_builder
-                                .handle_operation(&mut self.state.text_state, &operation)?;
+                            text_builder.handle_operation(&mut self.state, &operation)?;
                         }
                         None => {}
                     },

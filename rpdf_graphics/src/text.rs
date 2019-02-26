@@ -8,6 +8,8 @@ use rpdf_lopdf_extra::DocumentExt;
 use crate::data::Name;
 use crate::font::{FontMap, LoadedFont};
 
+use super::GraphicsState;
+
 pub struct TextState {
     char_spacing: f32,
     word_spacing: f32,
@@ -149,7 +151,7 @@ impl<'a> TextObjectBuilder<'a> {
 
     fn handle_text_position_operation(
         &mut self,
-        text_state: &mut TextState,
+        state: &mut GraphicsState,
         op: &lopdf::content::Operation,
     ) -> Fallible<()> {
         match op.operator.as_str() {
@@ -162,7 +164,7 @@ impl<'a> TextObjectBuilder<'a> {
                 let x = self.document.deserialize_object(&op.operands[0])?;
                 let y = self.document.deserialize_object(&op.operands[1])?;
                 self.apply_translation(x, y);
-                text_state.text_leading = -y;
+                state.text_state.text_leading = -y;
             }
             "Tm" => {
                 let a = self.document.deserialize_object(&op.operands[0])?;
@@ -176,7 +178,7 @@ impl<'a> TextObjectBuilder<'a> {
                 self.text_line_matrix = transform;
             }
             "T*" => {
-                self.apply_translation(0.0, text_state.text_leading);
+                self.apply_translation(0.0, state.text_state.text_leading);
             }
             _ => {}
         }
@@ -185,20 +187,20 @@ impl<'a> TextObjectBuilder<'a> {
 
     fn handle_text_show_operation(
         &mut self,
-        text_state: &mut TextState,
+        state: &mut GraphicsState,
         op: &lopdf::content::Operation,
     ) -> Fallible<()> {
         match op.operator.as_str() {
             "Tj" => match op.operands[0] {
                 lopdf::Object::String(ref s, _) => {
-                    self.flush_segment(text_state, s);
+                    self.flush_segment(&state.text_state, s);
                 }
                 _ => failure::bail!("unexpected operand {:?}", op),
             },
             "'" => match op.operands[0] {
                 lopdf::Object::String(ref s, _) => {
-                    self.apply_translation(0.0, text_state.text_leading);
-                    self.flush_segment(text_state, s);
+                    self.apply_translation(0.0, state.text_state.text_leading);
+                    self.flush_segment(&state.text_state, s);
                 }
                 _ => failure::bail!("unexpected operand {:?}", op),
             },
@@ -207,10 +209,10 @@ impl<'a> TextObjectBuilder<'a> {
                 let char_spacing = self.document.deserialize_object(&op.operands[1])?;
                 match op.operands[2] {
                     lopdf::Object::String(ref s, _) => {
-                        text_state.word_spacing = word_spacing;
-                        text_state.char_spacing = char_spacing;
-                        self.apply_translation(0.0, text_state.text_leading);
-                        self.flush_segment(text_state, s);
+                        state.text_state.word_spacing = word_spacing;
+                        state.text_state.char_spacing = char_spacing;
+                        self.apply_translation(0.0, state.text_state.text_leading);
+                        self.flush_segment(&state.text_state, s);
                     }
                     _ => failure::bail!("unexpected operand {:?}", op),
                 }
@@ -220,13 +222,13 @@ impl<'a> TextObjectBuilder<'a> {
                     for part in parts {
                         match part {
                             lopdf::Object::String(ref s, _) => {
-                                self.flush_segment(text_state, s);
+                                self.flush_segment(&state.text_state, s);
                             }
                             lopdf::Object::Real(amount) => {
-                                self.apply_adjustment(text_state, *amount as f32);
+                                self.apply_adjustment(&state.text_state, *amount as f32);
                             }
                             lopdf::Object::Integer(amount) => {
-                                self.apply_adjustment(text_state, *amount as f32);
+                                self.apply_adjustment(&state.text_state, *amount as f32);
                             }
                             _ => {}
                         }
@@ -241,12 +243,12 @@ impl<'a> TextObjectBuilder<'a> {
 
     pub fn handle_operation(
         &mut self,
-        text_state: &mut TextState,
+        state: &mut GraphicsState,
         op: &lopdf::content::Operation,
     ) -> Fallible<()> {
         match op.operator.as_str() {
-            "Td" | "TD" | "Tm" | "T*" => self.handle_text_position_operation(text_state, &op),
-            "Tj" | "'" | "\"" | "TJ" => self.handle_text_show_operation(text_state, &op),
+            "Td" | "TD" | "Tm" | "T*" => self.handle_text_position_operation(state, &op),
+            "Tj" | "'" | "\"" | "TJ" => self.handle_text_show_operation(state, &op),
             _ => failure::bail!("unknown operation {:?}", op),
         }
     }

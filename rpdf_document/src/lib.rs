@@ -31,14 +31,15 @@ impl Document {
                 let content = document.get_page_content(*object_id)?;
                 let font_map =
                     FontMap::try_from_page_fonts(&document, document.get_page_fonts(*object_id))?;
-                let text_objects =
-                    text::TextIter::decode(document.clone(), &font_map, &content)?.collect();
+                let graphics_objects =
+                    GraphicsObjectDecoder::decode(document.clone(), &font_map, &content)?
+                        .collect::<Fallible<_>>()?;
 
                 Ok(Page {
                     document: document.clone(),
                     object_id: *object_id,
                     media_box,
-                    text_objects,
+                    graphics_objects,
                     font_map,
                 })
             })
@@ -58,7 +59,7 @@ pub struct Page {
     document: Arc<lopdf::Document>,
     object_id: lopdf::ObjectId,
     media_box: data::Rectangle,
-    text_objects: Vec<TextObject>,
+    graphics_objects: Vec<GraphicsObject>,
     font_map: FontMap,
 }
 
@@ -71,8 +72,8 @@ impl Page {
         self.media_box.height()
     }
 
-    pub fn text(&self) -> &[TextObject] {
-        &self.text_objects
+    pub fn graphics_objects(&self) -> &[GraphicsObject] {
+        &self.graphics_objects
     }
 
     pub fn font(&self, name: &[u8]) -> Option<&Font> {

@@ -1383,6 +1383,7 @@ dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpdf_document 0.1.0",
+ "rpdf_graphics 0.1.0",
  "webrender 0.60.0 (git+https://github.com/servo/webrender?rev=d47bd44e9e24a171a7cddcd6f9bae104cf1b056d)",
 ]
 

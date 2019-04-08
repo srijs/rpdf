@@ -835,7 +835,7 @@ dependencies = [
 
 [[package]]
 name = "lopdf"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "chrono 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -844,7 +844,8 @@ dependencies = [
  "flate2 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked-hash-map 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pom 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pom 3.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1112,7 +1113,7 @@ dependencies = [
 
 [[package]]
 name = "pom"
-version = "1.1.0"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1334,7 +1335,7 @@ dependencies = [
  "euclid 0.19.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lopdf 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpdf_graphics 0.1.0",
  "rpdf_lopdf_extra 0.1.0",
 ]
@@ -1356,7 +1357,7 @@ dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "font-kit 0.1.0 (git+https://github.com/srijs/font-kit.git?rev=a9e0ea6f8782e8a95e7412adc8af7bc6b509890a)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lopdf 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpdf_glyph_names 0.1.0",
  "rpdf_lopdf_extra 0.1.0",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1368,7 +1369,7 @@ name = "rpdf_lopdf_extra"
 version = "0.1.0"
 dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lopdf 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1999,7 +2000,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum linked-hash-map 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6d262045c5b87c0861b3f004610afd0e2c851e2908d08b6c870cbb9d5f494ecd"
 "checksum lock_api 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "62ebf1391f6acad60e5c8b43706dde4582df75c06698ab44511d15016bc2442c"
 "checksum log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c84ec4b527950aa83a329754b01dbe3f58361d1c5efacd1f6d68c494d08a17c6"
-"checksum lopdf 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6bd8412009692c83bde8b4d868aaf1dffb8be7efc936069072952f8d37bda33f"
+"checksum lopdf 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f2cc4c41eb7eae583c9d27532669bd8b8a83f7c8dc1e3862070f737bebfe373"
 "checksum lyon_geom 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)" = "0ea0ba5f8d2d91d6d895aca54d1ec0d84ddfa4826f33fbfe8abb39f08f9e4153"
 "checksum lyon_path 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e9dc8e0746b7cca11960b602f7fe037bb067746a01eab4aa502fed1494544843"
 "checksum malloc_buf 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
@@ -2032,7 +2033,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum phf_shared 0.7.24 (registry+https://github.com/rust-lang/crates.io-index)" = "234f71a15de2288bcb7e3b6515828d22af7ec8598ee6d24c3b526fa0a80b67a0"
 "checksum pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
 "checksum plane-split 0.13.8 (registry+https://github.com/rust-lang/crates.io-index)" = "91c621d83b9c5a85b7ca7ca2bec643136debb327ad29d0a08768db1325780365"
-"checksum pom 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "60f6ce597ecdcc9a098e7fddacb1065093a3d66446fa16c675e7e71d1b5c28e6"
+"checksum pom 3.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6b2a5e2f78f76c4e1497a2749d8cf034351d1fcc4facaa800de83845067d2c06"
 "checksum proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)" = "4d317f9caece796be1980837fd5cb3dfec5613ebdb04ad0956deea83ce168915"
 "checksum procedural-masquerade 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "9a1574a51c3fd37b26d2c0032b649d08a7d51d4cca9c41bbc5bf7118fa4509d0"
 "checksum quick-error 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9274b940887ce9addde99c4eee6b5c44cc494b182b97e73dc8ffdcb3397fd3f0"

@@ -17,4 +17,4 @@ rpdf_lopdf_extra = { path = "../lib/lopdf_extra" }
 
 [dependencies.font-kit]
 git = "https://github.com/srijs/font-kit.git"
-rev = "b2a7688470bcc784b556eff682ef10b55f93c0c9"
+rev = "a9e0ea6f8782e8a95e7412adc8af7bc6b509890a"

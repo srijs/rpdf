@@ -5,6 +5,7 @@ use crossbeam::thread;
 use failure::Fallible;
 use glutin::GlContext;
 use structopt::StructOpt;
+use webrender::api::units::*;
 
 use rpdf_document::Document;
 
@@ -55,13 +56,13 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
             .get_inner_size()
             .unwrap()
             .to_physical(device_pixel_ratio);
-        webrender::api::DeviceIntSize::new(size.width as i32, size.height as i32)
+        FramebufferIntSize::new(size.width as i32, size.height as i32)
     };
 
     let notifier = Box::new(Notifier::new(events_loop.create_proxy()));
 
     let (mut renderer, sender) =
-        webrender::Renderer::new(gl.clone(), notifier, opts, None).unwrap();
+        webrender::Renderer::new(gl.clone(), notifier, opts, None, framebuffer_size).unwrap();
     let api = sender.create_api();
     let bgapi = sender.create_api();
     let document_id = api.add_document(framebuffer_size, 0);
@@ -80,7 +81,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
     background.render(epoch, pipeline_id, document_id, layout_size);
 
     // Stores the currently known cursor position.
-    let mut cursor_position = webrender::api::WorldPoint::zero();
+    let mut cursor_position = WorldPoint::zero();
 
     // Indicates whether the OpenGL window should be redrawn.
     let mut needs_repaint = true;
@@ -104,13 +105,12 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                             .get_inner_size()
                             .unwrap()
                             .to_physical(device_pixel_ratio);
-                        webrender::api::DeviceIntSize::new(size.width as i32, size.height as i32)
+                        FramebufferIntSize::new(size.width as i32, size.height as i32)
                     };
-                    api.set_window_parameters(
+                    api.set_document_view(
                         document_id,
-                        framebuffer_size,
-                        webrender::api::DeviceIntRect::new(
-                            webrender::api::DeviceIntPoint::zero(),
+                        FramebufferIntRect::new(
+                            FramebufferIntPoint::zero(),
                             framebuffer_size,
                         ),
                         device_pixel_ratio as f32,
@@ -125,7 +125,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                             .get_inner_size()
                             .unwrap()
                             .to_physical(device_pixel_ratio);
-                        webrender::api::DeviceIntSize::new(size.width as i32, size.height as i32)
+                        FramebufferIntSize::new(size.width as i32, size.height as i32)
                     };
                     needs_render = true;
                     needs_repaint = true;
@@ -137,7 +137,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                     position: glutin::dpi::LogicalPosition { x, y },
                     ..
                 } => {
-                    cursor_position = webrender::api::WorldPoint::new(x as f32, y as f32);
+                    cursor_position = WorldPoint::new(x as f32, y as f32);
                     return glutin::ControlFlow::Continue;
                 }
                 glutin::WindowEvent::MouseWheel { delta, .. } => {
@@ -149,7 +149,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
 
                     let mut txn = webrender::api::Transaction::new();
                     txn.scroll(
-                        webrender::api::ScrollLocation::Delta(webrender::api::LayoutVector2D::new(
+                        webrender::api::ScrollLocation::Delta(LayoutVector2D::new(
                             dx, dy,
                         )),
                         cursor_position,

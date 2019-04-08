@@ -2,6 +2,7 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use crossbeam::thread;
 use webrender::api::*;
+use webrender::api::units::*;
 
 use rpdf_document::Document;
 use rpdf_render::DocumentRenderer;
@@ -119,15 +120,9 @@ impl<'a> BackgroundRenderer<'a> {
         let space_and_clip = SpaceAndClipInfo::root_scroll(page_pipeline_id);
         let mut builder = DisplayListBuilder::new(page_pipeline_id, size);
         let info = LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_size));
-        builder.push_stacking_context(
+        builder.push_simple_stacking_context(
             &info,
             space_and_clip.spatial_id,
-            None,
-            webrender::api::TransformStyle::Flat,
-            webrender::api::MixBlendMode::Normal,
-            &[],
-            webrender::api::RasterSpace::Screen,
-            false,
         );
         self.document_renderer.render_page(
             index as usize,
@@ -184,18 +179,12 @@ impl<'a> BackgroundRenderer<'a> {
             &space_and_clip,
             ColorF::new(0.4, 0.4, 0.4, 1.0),
         );
-        builder.push_stacking_context(
-            &webrender::api::LayoutPrimitiveInfo::new(webrender::api::LayoutRect::new(
-                webrender::api::LayoutPoint::zero(),
+        builder.push_simple_stacking_context(
+            &webrender::api::LayoutPrimitiveInfo::new(LayoutRect::new(
+                LayoutPoint::zero(),
                 builder.content_size(),
             )),
             space_and_clip.spatial_id,
-            None,
-            webrender::api::TransformStyle::Flat,
-            webrender::api::MixBlendMode::Normal,
-            &[],
-            webrender::api::RasterSpace::Screen,
-            false,
         );
         let scroll_space_and_clip = builder.define_scroll_frame(
             &space_and_clip,
@@ -208,10 +197,10 @@ impl<'a> BackgroundRenderer<'a> {
             vec![],
             None,
             webrender::api::ScrollSensitivity::ScriptAndInputEvents,
-            LayoutPoint::zero(),
+            LayoutVector2D::zero(),
         );
 
-        let mut info = webrender::api::LayoutPrimitiveInfo::new(webrender::api::LayoutRect::new(
+        let mut info = webrender::api::LayoutPrimitiveInfo::new(LayoutRect::new(
             euclid::TypedPoint2D::zero(),
             euclid::TypedSize2D::new(layout_size.width, total_scaled_height),
         ));
@@ -227,18 +216,12 @@ impl<'a> BackgroundRenderer<'a> {
             let page_size = LayoutSize::new(page.width() as f32, page.height() as f32);
             let scaled_page_size = page_scale_factor.transform_size(&page_size);
 
-            builder.push_stacking_context(
+            builder.push_simple_stacking_context(
                 &LayoutPrimitiveInfo::new(LayoutRect::new(
                     LayoutPoint::new(10.0, y + 10.0),
                     scaled_page_size,
                 )),
                 scroll_space_and_clip.spatial_id,
-                None,
-                TransformStyle::Flat,
-                MixBlendMode::Normal,
-                &[],
-                RasterSpace::Screen,
-                false,
             );
             builder.push_shadow(
                 &LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_page_size)),

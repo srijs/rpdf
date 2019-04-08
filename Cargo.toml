@@ -19,7 +19,7 @@ rpdf_document = { path = "rpdf_document" }
 
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
-rev = "d47bd44e9e24a171a7cddcd6f9bae104cf1b056d"
+rev = "e9a987d3938f99756c88f5ea0b5cea74ed8c5a5a"
 
 [workspace]
 members = [

@@ -1,4 +1,5 @@
 use webrender::api::*;
+use webrender::api::units::LayoutPixel;
 
 use rpdf_document::Page;
 use rpdf_graphics::{text, GraphicsObject};

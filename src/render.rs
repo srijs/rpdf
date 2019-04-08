@@ -1,8 +1,8 @@
 use std::sync::{Arc, Condvar, Mutex};
 
 use crossbeam::thread;
-use webrender::api::*;
 use webrender::api::units::*;
+use webrender::api::*;
 
 use rpdf_document::Document;
 use rpdf_render::DocumentRenderer;
@@ -120,10 +120,7 @@ impl<'a> BackgroundRenderer<'a> {
         let space_and_clip = SpaceAndClipInfo::root_scroll(page_pipeline_id);
         let mut builder = DisplayListBuilder::new(page_pipeline_id, size);
         let info = LayoutPrimitiveInfo::new(LayoutRect::new(LayoutPoint::zero(), scaled_size));
-        builder.push_simple_stacking_context(
-            &info,
-            space_and_clip.spatial_id,
-        );
+        builder.push_simple_stacking_context(&info, space_and_clip.spatial_id);
         self.document_renderer.render_page(
             index as usize,
             scale,

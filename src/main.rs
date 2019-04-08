@@ -109,10 +109,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                     };
                     api.set_document_view(
                         document_id,
-                        FramebufferIntRect::new(
-                            FramebufferIntPoint::zero(),
-                            framebuffer_size,
-                        ),
+                        FramebufferIntRect::new(FramebufferIntPoint::zero(), framebuffer_size),
                         device_pixel_ratio as f32,
                     );
                     needs_render = true;
@@ -149,9 +146,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
 
                     let mut txn = webrender::api::Transaction::new();
                     txn.scroll(
-                        webrender::api::ScrollLocation::Delta(LayoutVector2D::new(
-                            dx, dy,
-                        )),
+                        webrender::api::ScrollLocation::Delta(LayoutVector2D::new(dx, dy)),
                         cursor_position,
                     );
                     txn.generate_frame();

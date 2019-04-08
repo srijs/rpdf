@@ -2,7 +2,7 @@
 
 `rpdf` aspires to be a fast PDF reader written in Rust, based on the [`webrender`](https://github.com/servo/webrender) project.
 
-![Azure DevOps builds](https://img.shields.io/azure-devops/build/srijs/05008e55-cc2c-4fd2-b018-832f7a096ce7/1.svg)
+[![Azure DevOps builds](https://img.shields.io/azure-devops/build/srijs/05008e55-cc2c-4fd2-b018-832f7a096ce7/1.svg)](https://dev.azure.com/srijs/rpdf/_build?definitionId=1)
 
 ## Status
 

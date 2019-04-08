@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crossbeam::thread;
 use failure::Fallible;
-use glutin::GlContext;
+use glutin::ContextTrait;
 use structopt::StructOpt;
 use webrender::api::units::*;
 
@@ -24,27 +24,28 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
     let window = glutin::WindowBuilder::new()
         .with_title("rPDF")
         .with_dimensions((pages[0].width() + 20.0, pages[0].height()).into());
-    let context = glutin::ContextBuilder::new()
+    let win_ctx = glutin::ContextBuilder::new()
         .with_vsync(false)
         .with_multisampling(4)
-        .with_srgb(true);
-    let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+        .with_srgb(true)
+        .build_windowed(window, &events_loop)
+        .unwrap();
 
     unsafe {
-        gl_window.make_current().unwrap();
+        win_ctx.make_current().unwrap();
     }
 
-    let gl = match gl_window.get_api() {
+    let gl = match win_ctx.get_api() {
         glutin::Api::OpenGl => unsafe {
-            gleam::gl::GlFns::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _)
+            gleam::gl::GlFns::load_with(|symbol| win_ctx.get_proc_address(symbol) as *const _)
         },
         glutin::Api::OpenGlEs => unsafe {
-            gleam::gl::GlesFns::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _)
+            gleam::gl::GlesFns::load_with(|symbol| win_ctx.get_proc_address(symbol) as *const _)
         },
         glutin::Api::WebGl => unimplemented!(),
     };
 
-    let mut device_pixel_ratio = gl_window.get_hidpi_factor();
+    let mut device_pixel_ratio = win_ctx.get_hidpi_factor();
 
     let opts = webrender::RendererOptions {
         device_pixel_ratio: device_pixel_ratio as f32,
@@ -52,7 +53,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
     };
 
     let mut framebuffer_size = {
-        let size = gl_window
+        let size = win_ctx
             .get_inner_size()
             .unwrap()
             .to_physical(device_pixel_ratio);
@@ -99,9 +100,9 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                     return glutin::ControlFlow::Break;
                 }
                 glutin::WindowEvent::Resized(size) => {
-                    gl_window.resize(size.to_physical(device_pixel_ratio));
+                    win_ctx.resize(size.to_physical(device_pixel_ratio));
                     framebuffer_size = {
-                        let size = gl_window
+                        let size = win_ctx
                             .get_inner_size()
                             .unwrap()
                             .to_physical(device_pixel_ratio);
@@ -118,7 +119,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
                 glutin::WindowEvent::HiDpiFactorChanged(factor) => {
                     device_pixel_ratio = factor;
                     framebuffer_size = {
-                        let size = gl_window
+                        let size = win_ctx
                             .get_inner_size()
                             .unwrap()
                             .to_physical(device_pixel_ratio);
@@ -165,7 +166,7 @@ fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallib
             renderer.update();
             renderer.render(framebuffer_size).unwrap();
             let _ = renderer.flush_pipeline_info();
-            gl_window.swap_buffers().unwrap();
+            win_ctx.swap_buffers().unwrap();
         }
 
         let layout_size =

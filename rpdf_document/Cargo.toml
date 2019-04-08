@@ -5,7 +5,6 @@ authors = ["Sam Rijs <srijs@airpost.net>"]
 edition = "2018"
 
 [dependencies]
-euclid = "0.19.5"
 failure = "0.1.5"
 log = "0.4.6"
 lopdf = "0.20.0"

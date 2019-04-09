@@ -18,11 +18,11 @@ struct Opt {
     input: PathBuf,
 }
 
-fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document) -> Fallible<()> {
+fn render<'env>(scope: &thread::Scope<'env>, document: &'env Document, title: &str) -> Fallible<()> {
     let pages = document.pages();
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
-        .with_title("rPDF")
+        .with_title(title)
         .with_dimensions((pages[0].width() + 20.0, pages[0].height()).into());
     let win_ctx = glutin::ContextBuilder::new()
         .with_vsync(false)
@@ -194,7 +194,9 @@ fn main() -> Fallible<()> {
     let input_file = File::open(&opt.input)?;
     let document = Document::parse(input_file)?;
 
-    thread::scope(|scope| render(scope, &document)).unwrap()?;
+    let file_name = opt.input.file_name().unwrap().to_str().unwrap();
+
+    thread::scope(|scope| render(scope, &document, file_name)).unwrap()?;
 
     Ok(())
 }
